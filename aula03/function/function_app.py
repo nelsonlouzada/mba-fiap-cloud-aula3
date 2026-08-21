@@ -80,3 +80,59 @@ def health(req: func.HttpRequest) -> func.HttpResponse:
         mimetype="application/json",
     )
 # CI/CD: redeploy via GitHub Actions com sku flexconsumption
+
+
+PRECO_POR_KM = 0.12       # R$/km
+PRECO_POR_KG = 3.50       # R$/kg
+PRAZO_BASE_DIAS = 2
+
+
+def _distancia_estimada_km(cep_origem: str, cep_destino: str) -> float:
+    """
+    Cálculo simplificado e determinístico: usa a diferença numérica
+    entre os prefixos de CEP como proxy de distância.
+    Em produção, isso chamaria uma API de geolocalização/roteamento.
+    """
+    prefixo_origem = int(cep_origem[:5])
+    prefixo_destino = int(cep_destino[:5])
+    return abs(prefixo_origem - prefixo_destino) * 0.8
+
+
+@app.route(route="frete", methods=["GET"])
+def calcular_frete(req: func.HttpRequest) -> func.HttpResponse:
+    try:
+        cep_origem = req.params.get("cep_origem")
+        cep_destino = req.params.get("cep_destino")
+        peso = float(req.params.get("peso", 0))
+
+        if not cep_origem or not cep_destino or peso <= 0:
+            return func.HttpResponse(
+                json.dumps({"erro": "Parâmetros obrigatórios: cep_origem, cep_destino, peso (kg)"}),
+                mimetype="application/json",
+                status_code=400,
+            )
+
+        distancia_km = _distancia_estimada_km(cep_origem, cep_destino)
+        valor = round(distancia_km * PRECO_POR_KM + peso * PRECO_POR_KG, 2)
+        prazo_dias = PRAZO_BASE_DIAS + int(distancia_km // 500)
+
+        resultado = {
+            "cep_origem": cep_origem,
+            "cep_destino": cep_destino,
+            "peso_kg": peso,
+            "valor_frete_reais": valor,
+            "prazo_estimado_dias": prazo_dias,
+        }
+
+        return func.HttpResponse(
+            json.dumps(resultado, ensure_ascii=False),
+            mimetype="application/json",
+            status_code=200,
+        )
+    except Exception as e:
+        logging.exception("Erro ao calcular frete")
+        return func.HttpResponse(
+            json.dumps({"erro": str(e)}),
+            mimetype="application/json",
+            status_code=500,
+        )
