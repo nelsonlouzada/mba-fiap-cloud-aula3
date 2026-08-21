@@ -1,0 +1,5 @@
+# LOG015: uso do logging root em vez de logger dedicado.
+# Ignorado propositalmente — código base fornecido pelo material da aula (function_app.py),
+# mantido como está para não introduzir mudanças fora do escopo do exercício.
+[lint]
+ignore = ["LOG015"]
