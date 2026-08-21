@@ -79,3 +79,4 @@ def health(req: func.HttpRequest) -> func.HttpResponse:
         json.dumps({"status": "ok", "service": "qc-catalogo", "source": "blob"}),
         mimetype="application/json",
     )
+# CI/CD: redeploy via GitHub Actions com sku flexconsumption
